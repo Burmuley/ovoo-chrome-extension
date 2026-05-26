@@ -111,10 +111,15 @@ async function handleMessage(
       await loginWithProvider(message.provider as string)
       return { ok: true }
 
-    case 'LOGOUT':
-      await chrome.storage.local.remove(['jwt', 'jwtExpiry'])
+    case 'LOGOUT': {
+      const { pendingAuthTabId } = await chrome.storage.local.get('pendingAuthTabId')
+      if (pendingAuthTabId) {
+        await chrome.tabs.remove(pendingAuthTabId as number).catch(() => {})
+      }
+      await chrome.storage.local.remove(['jwt', 'jwtExpiry', 'lastProvider', 'pendingAuthTabId'])
       aliasCache.clear()
       return { ok: true }
+    }
 
     case 'GET_ALIASES': {
       if (!(await isAuthenticated())) return { ok: false, error: 'Not authenticated' }

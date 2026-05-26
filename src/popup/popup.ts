@@ -96,6 +96,9 @@ async function renderAliases(serverUrl: string): Promise<void> {
     void render()
   })
   actions.appendChild(logoutBtn)
+  const optionsBtn = el('button', { class: 'btn-icon', title: 'Options' }, '⚙')
+  optionsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage())
+  actions.appendChild(optionsBtn)
   header.appendChild(actions)
   content.appendChild(header)
 
@@ -329,16 +332,39 @@ function renderNoServer(): void {
   content.appendChild(wrap)
 }
 
-function renderBearerNotConfigured(): void {
+function renderBearerForm(): void {
   clear()
-  const wrap = el('div', { class: 'simple-content' })
-  wrap.appendChild(el('div', { class: 'status' }, 'No token configured.'))
-  const link = el('a', { class: 'link', href: '#' }, 'Open Options to configure your token')
-  link.addEventListener('click', (e) => {
-    e.preventDefault()
-    chrome.runtime.openOptionsPage()
+  const wrap = el('div', { class: 'form-wrap' })
+
+  const group = el('div', { class: 'form-group' })
+  group.appendChild(el('label', { class: 'form-label' }, 'Bearer Token'))
+  const tokenInput = el('input', { class: 'form-input', type: 'password', placeholder: 'Paste token here…' })
+  group.appendChild(tokenInput)
+  wrap.appendChild(group)
+
+  const errorEl = el('div', { class: 'form-error' })
+  wrap.appendChild(errorEl)
+
+  const btnRow = el('div', { class: 'btn-row' })
+  const saveBtn = el('button', { class: 'btn-primary' }, 'Save Token')
+  saveBtn.addEventListener('click', async () => {
+    const token = (tokenInput as HTMLInputElement).value.trim()
+    if (!token) { errorEl.textContent = 'Token is required.'; return }
+    await chrome.storage.local.set({ authMode: 'bearer', jwt: token })
+    await chrome.storage.local.remove('jwtExpiry')
+    void render()
   })
-  wrap.appendChild(link)
+  btnRow.appendChild(saveBtn)
+  wrap.appendChild(btnRow)
+
+  const switchLink = el('a', { class: 'link' }, 'Use OIDC sign-in instead')
+  switchLink.addEventListener('click', async () => {
+    await chrome.storage.local.set({ authMode: 'oidc' })
+    await chrome.storage.local.remove(['jwt', 'jwtExpiry'])
+    void render()
+  })
+  wrap.appendChild(switchLink)
+
   content.appendChild(wrap)
 }
 
@@ -358,6 +384,11 @@ function renderProviders(providers: string[]): void {
     providerWrap.appendChild(btn)
   }
   wrap.appendChild(providerWrap)
+
+  const bearerLink = el('a', { class: 'link' }, 'Use Bearer Token instead')
+  bearerLink.addEventListener('click', () => renderBearerForm())
+  wrap.appendChild(bearerLink)
+
   content.appendChild(wrap)
 }
 
@@ -396,7 +427,7 @@ async function render(): Promise<void> {
   }
 
   if (mode === 'bearer') {
-    renderBearerNotConfigured()
+    renderBearerForm()
     return
   }
 
