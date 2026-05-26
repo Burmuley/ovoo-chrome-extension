@@ -4,17 +4,25 @@ const WIDGET_HOST_ID = 'ovoo-alias-widget-host'
 
 function sendMessage<T>(message: object): Promise<T | null> {
   return new Promise((resolve) => {
-    try {
-      chrome.runtime.sendMessage(message, (response: T | undefined) => {
-        if (chrome.runtime.lastError) {
-          resolve(null)
-          return
-        }
-        resolve(response ?? null)
-      })
-    } catch {
-      resolve(null)
+    function attempt(retriesLeft: number): void {
+      try {
+        chrome.runtime.sendMessage(message, (response: T | undefined) => {
+          if (chrome.runtime.lastError) {
+            const msg = chrome.runtime.lastError.message ?? ''
+            if (retriesLeft > 0 && msg.includes('Receiving end does not exist')) {
+              setTimeout(() => attempt(retriesLeft - 1), 100)
+              return
+            }
+            resolve(null)
+            return
+          }
+          resolve(response ?? null)
+        })
+      } catch {
+        resolve(null)
+      }
     }
+    attempt(3)
   })
 }
 
