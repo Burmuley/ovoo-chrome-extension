@@ -2,9 +2,19 @@ import type { Alias } from '../types/ovoo'
 
 const WIDGET_HOST_ID = 'ovoo-alias-widget-host'
 
-function sendMessage<T>(message: object): Promise<T> {
+function sendMessage<T>(message: object): Promise<T | null> {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage(message, resolve)
+    try {
+      chrome.runtime.sendMessage(message, (response: T | undefined) => {
+        if (chrome.runtime.lastError) {
+          resolve(null)
+          return
+        }
+        resolve(response ?? null)
+      })
+    } catch {
+      resolve(null)
+    }
   })
 }
 
@@ -129,13 +139,13 @@ async function onEmailFocus(event: Event): Promise<void> {
   const authRes = await sendMessage<{ ok: boolean; authenticated: boolean }>({
     type: 'GET_AUTH_STATUS',
   })
-  if (!authRes.authenticated) return
+  if (!authRes?.authenticated) return
 
   const aliasRes = await sendMessage<{ ok: boolean; aliases?: Alias[]; error?: string }>({
     type: 'GET_ALIASES',
     hostname: location.hostname,
   })
-  if (!aliasRes.ok) return
+  if (!aliasRes?.ok) return
 
   createWidget(input, aliasRes.aliases ?? [])
 }
