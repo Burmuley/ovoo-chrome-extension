@@ -43,4 +43,5 @@ export interface StorageData {
   jwtExpiry?: number
   pendingAuthTabId?: number
   lastProvider?: string
+  authMode?: 'oidc' | 'bearer'
 }

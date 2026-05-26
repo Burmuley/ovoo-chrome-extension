@@ -35,14 +35,36 @@ async function getCurrentTabHostname(): Promise<string> {
 
 function renderAliasItem(alias: Alias): HTMLElement {
   const item = el('div', { class: 'alias-item' })
-  item.appendChild(el('div', { class: 'alias-email' }, alias.email))
+  if (alias.metadata.comment) item.title = alias.metadata.comment
+
+  const body = el('div', { class: 'alias-body' })
+  body.appendChild(el('div', { class: 'alias-email' }, alias.email))
   const meta = el('div', { class: 'alias-meta' })
   if (alias.metadata.service_name) {
     meta.appendChild(el('span', { class: 'alias-service' }, alias.metadata.service_name))
   }
   const badgeClass = alias.active ? 'alias-badge active' : 'alias-badge inactive'
   meta.appendChild(el('span', { class: badgeClass }, alias.active ? 'active' : 'inactive'))
-  item.appendChild(meta)
+  body.appendChild(meta)
+  body.addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (tab?.id !== undefined) {
+      chrome.tabs.sendMessage(tab.id, { type: 'INSERT_ALIAS', email: alias.email }).catch(() => {})
+      window.close()
+    }
+  })
+  item.appendChild(body)
+
+  const copyBtn = el('button', { class: 'alias-copy-btn' }, 'Copy')
+  copyBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(alias.email).then(() => {
+      copyBtn.textContent = '✓'
+      setTimeout(() => { copyBtn.textContent = 'Copy' }, 1200)
+    }).catch(() => {})
+  })
+  item.appendChild(copyBtn)
+
   return item
 }
 
@@ -55,7 +77,12 @@ async function renderAliases(serverUrl: string): Promise<void> {
   const title = el('h1', {}, 'Ovoo Aliases')
   headerLeft.appendChild(title)
   if (serverUrl) {
-    headerLeft.appendChild(el('div', { class: 'server-url' }, serverUrl))
+    const serverLink = el('a', { class: 'server-url', href: '#' }, serverUrl)
+    serverLink.addEventListener('click', (e) => {
+      e.preventDefault()
+      chrome.tabs.create({ url: serverUrl }).catch(() => {})
+    })
+    headerLeft.appendChild(serverLink)
   }
   header.appendChild(headerLeft)
 
@@ -100,6 +127,7 @@ async function renderAliases(serverUrl: string): Promise<void> {
     listWrap.appendChild(el('div', { class: 'empty-state' }, query ? 'Searching…' : 'Loading…'))
     const res = await sendMessage<{ ok: boolean; aliases?: Alias[]; error?: string }>({
       type: 'GET_ALL_ALIASES',
+      active: true,
       ...(query ? { q: query } : {}),
     })
     renderList(res.aliases ?? [], query)
@@ -301,6 +329,19 @@ function renderNoServer(): void {
   content.appendChild(wrap)
 }
 
+function renderBearerNotConfigured(): void {
+  clear()
+  const wrap = el('div', { class: 'simple-content' })
+  wrap.appendChild(el('div', { class: 'status' }, 'No token configured.'))
+  const link = el('a', { class: 'link', href: '#' }, 'Open Options to configure your token')
+  link.addEventListener('click', (e) => {
+    e.preventDefault()
+    chrome.runtime.openOptionsPage()
+  })
+  wrap.appendChild(link)
+  content.appendChild(wrap)
+}
+
 function renderProviders(providers: string[]): void {
   clear()
   const wrap = el('div', { class: 'simple-content' })
@@ -345,9 +386,17 @@ async function render(): Promise<void> {
     return
   }
 
-  const { serverUrl } = await chrome.storage.local.get('serverUrl')
+  const storageData = await chrome.storage.local.get(['serverUrl', 'authMode'])
+  const serverUrl = storageData.serverUrl as string | undefined
+  const mode = (storageData.authMode as string | undefined) ?? 'oidc'
+
   if (!serverUrl) {
     renderNoServer()
+    return
+  }
+
+  if (mode === 'bearer') {
+    renderBearerNotConfigured()
     return
   }
 

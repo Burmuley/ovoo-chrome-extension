@@ -63,6 +63,11 @@
       #msg.error {
         color: #dc2626;
       }
+      textarea:focus {
+        outline: 2px solid #2563eb;
+        outline-offset: 1px;
+        border-color: transparent;
+      }
     </style>
   </head>
   <body>
@@ -70,6 +75,25 @@
     <label for="serverUrl">Ovoo Server URL</label>
     <input type="url" id="serverUrl" placeholder="https://ovoomail.example.com:8808" />
     <div class="hint">Include protocol and port. Changing this will sign you out.</div>
+    <div style="margin-top: 18px;">
+      <label style="font-weight:500; display:block; margin-bottom:6px;">Authentication mode</label>
+      <label style="font-weight:400; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+        <input type="radio" name="authMode" id="modeOidc" value="oidc" checked />
+        OIDC (sign in with provider)
+      </label>
+      <label style="font-weight:400; display:flex; align-items:center; gap:6px;">
+        <input type="radio" name="authMode" id="modeBearer" value="bearer" />
+        Bearer token
+      </label>
+    </div>
+    <div id="tokenSection" hidden style="margin-top: 14px;">
+      <label for="bearerToken" style="font-weight:500; display:block; margin-bottom:4px;">Bearer Token</label>
+      <textarea id="bearerToken" rows="4"
+        placeholder="Paste your bearer token here…"
+        style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;
+               font-size:13px;font-family:monospace;box-sizing:border-box;resize:vertical;"></textarea>
+      <div class="hint">Stored locally and sent as <code>Authorization: Bearer …</code>. Leave blank to keep the existing token.</div>
+    </div>
     <button id="save">Save</button>
     <div id="msg" hidden></div>
     <script type="module" src="options.ts"></script>

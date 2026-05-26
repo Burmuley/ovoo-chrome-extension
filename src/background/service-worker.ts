@@ -14,8 +14,10 @@ function parseJwtExpiry(jwt: string): number {
 }
 
 async function isAuthenticated(): Promise<boolean> {
-  const data = await chrome.storage.local.get(['jwt', 'jwtExpiry'])
-  return !!data.jwt && !!data.jwtExpiry && Date.now() < (data.jwtExpiry as number)
+  const data = await chrome.storage.local.get(['jwt', 'jwtExpiry', 'authMode'])
+  if (!data.jwt) return false
+  if (((data.authMode as string | undefined) ?? 'oidc') === 'bearer') return true
+  return !!data.jwtExpiry && Date.now() < (data.jwtExpiry as number)
 }
 
 function normaliseHostname(hostname: string): string {
@@ -32,12 +34,21 @@ async function loginWithProvider(provider: string): Promise<void> {
 }
 
 async function tryAutoRenew(): Promise<boolean> {
-  const data = await chrome.storage.local.get(['lastProvider', 'pendingAuthTabId'])
+  const data = await chrome.storage.local.get(['lastProvider', 'pendingAuthTabId', 'authMode'])
+  if (((data.authMode as string | undefined) ?? 'oidc') === 'bearer') return false
   if (data.pendingAuthTabId) return true // re-auth already in progress
   if (!data.lastProvider) return false
   await loginWithProvider(data.lastProvider as string)
   return true
 }
+
+// Clear pending auth state if the login tab is closed before completing auth.
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const stored = await chrome.storage.local.get('pendingAuthTabId')
+  if (tabId === stored.pendingAuthTabId) {
+    await chrome.storage.local.remove('pendingAuthTabId')
+  }
+})
 
 // Detect when the login tab lands on the server root — that means auth is complete.
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -117,7 +128,8 @@ async function handleMessage(
     case 'GET_ALL_ALIASES': {
       if (!(await isAuthenticated())) return { ok: false, error: 'Not authenticated' }
       const q = message.q as string | undefined
-      const aliases = await api.getAliases(undefined, q)
+      const active = message.active as boolean | undefined
+      const aliases = await api.getAliases(undefined, q, active)
       return { ok: true, aliases }
     }
 

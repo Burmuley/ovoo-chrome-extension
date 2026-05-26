@@ -19,6 +19,7 @@ function insertValue(input: HTMLInputElement, value: string): void {
 }
 
 let pendingInsertInput: HTMLInputElement | null = null
+let lastFocusedEmailInput: HTMLInputElement | null = null
 
 function createWidget(input: HTMLInputElement, aliases: Alias[]): void {
   removeWidget()
@@ -144,6 +145,7 @@ function attachToInput(input: HTMLInputElement): void {
   input.dataset.ovooAttached = '1'
 
   input.addEventListener('focus', (e) => {
+    lastFocusedEmailInput = input
     void onEmailFocus(e)
   })
   input.addEventListener('blur', () => {
@@ -184,8 +186,11 @@ document.addEventListener(
 )
 
 chrome.runtime.onMessage.addListener((message: { type: string; [key: string]: unknown }) => {
-  if (message.type === 'INSERT_ALIAS' && pendingInsertInput) {
-    insertValue(pendingInsertInput, message.email as string)
-    pendingInsertInput = null
+  if (message.type === 'INSERT_ALIAS') {
+    const target = pendingInsertInput ?? lastFocusedEmailInput
+    if (target) {
+      insertValue(target, message.email as string)
+      pendingInsertInput = null
+    }
   }
 })

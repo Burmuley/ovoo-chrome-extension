@@ -37,10 +37,11 @@ export async function getProviders(): Promise<string[]> {
   return res.json() as Promise<string[]>
 }
 
-export async function getAliases(serviceName?: string, q?: string): Promise<Alias[]> {
+export async function getAliases(serviceName?: string, q?: string, active?: boolean): Promise<Alias[]> {
   const params = new URLSearchParams()
   if (serviceName) params.set('service_name', serviceName)
   if (q) params.set('q', q)
+  if (active !== undefined) params.set('active', String(active))
   const qs = params.toString()
   const data = await apiFetch<PaginatedAliases>(`/api/v1/aliases${qs ? `?${qs}` : ''}`)
   return data.aliases
