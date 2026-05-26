@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ovoo Alias Helper — Options</title>
+    <style>
+      body {
+        max-width: 480px;
+        margin: 40px auto;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        color: #111827;
+        padding: 0 16px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+      }
+      input[type="url"] {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      input[type="url"]:focus {
+        outline: 2px solid #2563eb;
+        outline-offset: 1px;
+        border-color: transparent;
+      }
+      .hint {
+        font-size: 12px;
+        color: #6b7280;
+        margin-top: 4px;
+      }
+      button {
+        margin-top: 14px;
+        padding: 8px 18px;
+        background: #2563eb;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+      #msg {
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      #msg.success {
+        color: #16a34a;
+      }
+      #msg.error {
+        color: #dc2626;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Ovoo Alias Helper — Options</h1>
+    <label for="serverUrl">Ovoo Server URL</label>
+    <input type="url" id="serverUrl" placeholder="https://ovoomail.example.com:8808" />
+    <div class="hint">Include protocol and port. Changing this will sign you out.</div>
+    <button id="save">Save</button>
+    <div id="msg" hidden></div>
+    <script type="module" src="options.ts"></script>
+  </body>
+</html>
