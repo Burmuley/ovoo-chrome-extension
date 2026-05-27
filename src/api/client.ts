@@ -12,17 +12,44 @@ async function getStorage(): Promise<{ serverUrl: string; jwt: string }> {
   return { serverUrl: data.serverUrl as string, jwt: data.jwt as string }
 }
 
+async function refreshAccessToken(): Promise<boolean> {
+  const data = await chrome.storage.local.get(['serverUrl', 'lastProvider'])
+  if (!data.serverUrl || !data.lastProvider) return false
+  const base = (data.serverUrl as string).replace(/\/$/, '')
+  try {
+    const res = await fetch(
+      `${base}/auth/${encodeURIComponent(data.lastProvider as string)}/refresh`,
+      { method: 'POST', credentials: 'include' },
+    )
+    if (!res.ok) return false
+    const accessCookie = await chrome.cookies.get({ url: base, name: 'ovoo_access' })
+    if (!accessCookie) return false
+    await chrome.storage.local.set({ jwt: accessCookie.value })
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const { serverUrl, jwt } = await getStorage()
-  const url = serverUrl.replace(/\/$/, '') + path
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${jwt}`,
-      ...init?.headers,
-    },
-  })
+  const doFetch = async (): Promise<Response> => {
+    const { serverUrl, jwt } = await getStorage()
+    return fetch(serverUrl.replace(/\/$/, '') + path, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${jwt}`,
+        ...init?.headers,
+      },
+    })
+  }
+
+  let res = await doFetch()
+  if (res.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (!refreshed) throw new Error(`API error 401: ${await res.text()}`)
+    res = await doFetch()
+  }
   if (!res.ok) throw new Error(`API error ${res.status}: ${await res.text()}`)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>

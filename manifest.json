@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Ovoo - Anonymous Email Aliasing & Forwarding",
-  "version": "0.2.3",
-  "description": "Detect email input fields and suggest or create Ovoo email aliases",
+  "version": "0.3.0",
+  "description": "In-browser extension to use and manage email aliases provided by Ovoo",
   "permissions": [
     "storage",
     "cookies",

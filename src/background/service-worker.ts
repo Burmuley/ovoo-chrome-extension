@@ -4,20 +4,9 @@ import type { Alias } from '../types/ovoo'
 // Ephemeral per-hostname alias cache — lost on service worker restart, falls back to API fetch.
 const aliasCache = new Map<string, Alias[]>()
 
-function parseJwtExpiry(jwt: string): number {
-  try {
-    const payload = JSON.parse(atob(jwt.split('.')[1])) as { exp?: number }
-    return (payload.exp ?? 0) * 1000
-  } catch {
-    return 0
-  }
-}
-
 async function isAuthenticated(): Promise<boolean> {
-  const data = await chrome.storage.local.get(['jwt', 'jwtExpiry', 'authMode'])
-  if (!data.jwt) return false
-  if (((data.authMode as string | undefined) ?? 'oidc') === 'bearer') return true
-  return !!data.jwtExpiry && Date.now() < (data.jwtExpiry as number)
+  const { jwt } = await chrome.storage.local.get('jwt')
+  return !!jwt
 }
 
 function normaliseHostname(hostname: string): string {
@@ -63,13 +52,10 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // Only trigger on the exact root page, not on intermediate redirects.
   if (tabUrl !== base && tabUrl !== base + '/') return
 
-  const cookie = await chrome.cookies.get({ url: base, name: 'ovoo_auth' })
-  if (!cookie) return
+  const accessCookie = await chrome.cookies.get({ url: base, name: 'ovoo_access' })
+  if (!accessCookie) return
 
-  const jwt = cookie.value
-  const jwtExpiry = parseJwtExpiry(jwt)
-
-  await chrome.storage.local.set({ jwt, jwtExpiry })
+  await chrome.storage.local.set({ jwt: accessCookie.value })
   await chrome.storage.local.remove('pendingAuthTabId')
   aliasCache.clear()
 
