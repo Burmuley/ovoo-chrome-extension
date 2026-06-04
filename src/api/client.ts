@@ -1,5 +1,6 @@
 import type {
   Alias,
+  Domain,
   PaginatedAliases,
   PaginatedProtectedAddresses,
   ProtectedAddress,
@@ -79,8 +80,8 @@ export async function getProtectedAddresses(): Promise<ProtectedAddress[]> {
   return data.protected_addresses
 }
 
-export async function getDomains(): Promise<string[]> {
-  const data = await apiFetch<{ domains: string[] }>('/api/v1/domains')
+export async function getDomains(): Promise<Domain[]> {
+  const data = await apiFetch<{ domains: Domain[] }>('/api/v1/domains?include_global=true')
   return data.domains
 }
 
@@ -93,7 +94,7 @@ export async function createAlias(
     method: 'POST',
     body: JSON.stringify({
       protected_address_id: protectedAddressId,
-      ...(domain ? { domain } : {}),
+      ...(domain ? { domain_id: domain } : {}),
       metadata: { service_name: serviceName, comment: '' },
     }),
   })

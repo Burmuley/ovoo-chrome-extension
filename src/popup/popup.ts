@@ -1,4 +1,4 @@
-import type { Alias, ProtectedAddress } from '../types/ovoo'
+import type { Alias, Domain, ProtectedAddress } from '../types/ovoo'
 
 const content = document.getElementById('content')!
 
@@ -173,7 +173,7 @@ async function renderNewAliasForm(serverUrl: string, fromTabId?: number): Promis
     sendMessage<{ ok: boolean; addresses?: ProtectedAddress[]; error?: string }>({
       type: 'GET_PROTECTED_ADDRESSES',
     }),
-    sendMessage<{ ok: boolean; domains?: string[]; error?: string }>({ type: 'GET_DOMAINS' }),
+    sendMessage<{ ok: boolean; domains?: Domain[]; error?: string }>({ type: 'GET_DOMAINS' }),
   ])
 
   spinner.remove()
@@ -216,7 +216,7 @@ async function renderNewAliasForm(serverUrl: string, fromTabId?: number): Promis
   domainGroup.appendChild(el('label', { class: 'form-label' }, 'Domain'))
   const domainSelect = el('select', { class: 'form-select' })
   for (const d of domains) {
-    domainSelect.appendChild(el('option', { value: d }, d))
+    domainSelect.appendChild(el('option', { value: d.id }, d.name))
   }
   domainGroup.appendChild(domainSelect)
   form.appendChild(domainGroup)

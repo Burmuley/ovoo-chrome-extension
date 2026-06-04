@@ -9,6 +9,13 @@ export interface Alias {
   }
 }
 
+export interface Domain {
+  id: string
+  name: string
+  type: 'global' | 'personal'
+  active: boolean
+}
+
 export interface ProtectedAddress {
   id: string
   email: string
